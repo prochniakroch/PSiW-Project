@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/shm.h>
 #include "gameMemory.h"
+#include <unistd.h>
 
 int main() {
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
@@ -45,6 +46,11 @@ int main() {
            gra->gracze[1].robotnicy);
 
     //zamykanie
+    while(1) {
+        gra->gracze[0].surowce += 50;
+        gra->gracze[1].surowce += 50;
+        sleep(1);
+    }
     shmdt(gra);
     return 0;
 }
