@@ -3,6 +3,7 @@
 #include <sys/shm.h>
 #include "gameMemory.h"
 #include <unistd.h>
+#include <stdlib.h>
 
 int main() {
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
@@ -45,12 +46,45 @@ int main() {
            gra->gracze[1].jazda,
            gra->gracze[1].robotnicy);
 
-    //zamykanie
+    int OstCzas = 0;
     while(1) {
-        gra->gracze[0].surowce += 50;
-        gra->gracze[1].surowce += 50;
-        sleep(1);
+
+        // dodawanie surowców co turę
+        if (OstCzas == 100) {
+            gra->gracze[0].surowce += 50 + (gra->gracze[0].robotnicy * 5);
+            gra->gracze[1].surowce += 50 + (gra->gracze[1].robotnicy * 5);
+            OstCzas = 0;
+        }
+
+        printf(".\n"); //test odpowiedzi programu
+        fflush(stdout);
+
+        for (int i = 0; i < 2; i++) {
+            if(gra->gracze[i].komenda != CMD_BRAK) {
+                
+                printf("Gracz %d wydał komendę: %d\n", i, gra->gracze[i].komenda);
+
+                // obsługa kupna robotnika
+                if(gra->gracze[i].komenda == CMD_KUP_ROBOTNIKA) {
+                    // dodaj zabezpieczenie: czy go stać?
+                    if (gra->gracze[i].surowce >= 150) {
+                        gra->gracze[i].surowce -= 150;
+                        gra->gracze[i].robotnicy += 1;
+                        printf("-> Sukces. Gracz %d ma teraz %d robotników.\n", i, gra->gracze[i].robotnicy);
+                    } else {
+                        printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
+                    }
+                }
+
+                // czyścimy komendę po wykonaniu
+                gra->gracze[i].komenda = CMD_BRAK;
+            }
+        }
+        OstCzas++;
+        usleep(10000); // opóźnienie 0.01 sekundy
     }
+
+    //zamykanie pamięci współdzielonej
     shmdt(gra);
     return 0;
 }
