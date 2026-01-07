@@ -64,13 +64,43 @@ int main() {
                 
                 printf("Gracz %d wydał komendę: %d\n", i, gra->gracze[i].komenda);
 
-                // obsługa kupna robotnika
+                // obsługa kupna robotnika  )
                 if(gra->gracze[i].komenda == CMD_KUP_ROBOTNIKA) {
                     // dodaj zabezpieczenie: czy go stać?
                     if (gra->gracze[i].surowce >= 150) {
                         gra->gracze[i].surowce -= 150;
                         gra->gracze[i].robotnicy += 1;
                         printf("-> Sukces. Gracz %d ma teraz %d robotników.\n", i, gra->gracze[i].robotnicy);
+                    } else {
+                        printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
+                    }
+                }
+                // obsługa kupna lekkiej piechoty
+                if(gra->gracze[i].komenda == CMD_KUP_LPIECHOTA) {
+                    if (gra->gracze[i].surowce >= 100) {
+                        gra->gracze[i].surowce -= 100;
+                        gra->gracze[i].lpiechota += 1;
+                        printf("-> Sukces. Gracz %d ma teraz %d lekkiej piechoty.\n", i, gra->gracze[i].lpiechota);
+                    } else {
+                        printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
+                    }
+                }
+                // obsługa kupna ciężkiej piechoty
+                if(gra->gracze[i].komenda == CMD_KUP_CPIECHOTA) {
+                    if (gra->gracze[i].surowce >= 250) {
+                        gra->gracze[i].surowce -= 250;
+                        gra->gracze[i].cpiechota += 1;
+                        printf("-> Sukces. Gracz %d ma teraz %d ciężkiej piechoty.\n", i, gra->gracze[i].cpiechota);
+                    } else {
+                        printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
+                    }
+                }
+                // obsługa kupna jazdy
+                if(gra->gracze[i].komenda == CMD_KUP_JAZDA) {
+                    if (gra->gracze[i].surowce >= 550) {
+                        gra->gracze[i].surowce -= 550;
+                        gra->gracze[i].jazda += 1;
+                        printf("-> Sukces. Gracz %d ma teraz %d jazdy.\n", i, gra->gracze[i].jazda);
                     } else {
                         printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                     }
