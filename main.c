@@ -40,7 +40,13 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
         int ciezkaPiechotaStratyAtakujacy = gra->gracze[graczAtakujacy].cpiechota * (silaAtaku / silaObrony);
         int jazdaStratyAtakujacy = gra->gracze[graczAtakujacy].jazda * (silaAtaku / silaObrony);
         printf("Lekka piechota: %d, Ciężka piechota: %d, Jazda: %d\n", lekkaPiechotaStratyAtakujacy, ciezkaPiechotaStratyAtakujacy, jazdaStratyAtakujacy);
+        gra->gracze[graczObraniajacy].lpiechota -= lekkaPiechotaStraty;
+        gra->gracze[graczObraniajacy].cpiechota -= ciezkaPiechotaStraty;
+        gra->gracze[graczObraniajacy].jazda -= jazdaStraty;
 
+        gra->gracze[graczAtakujacy].lpiechota -= lekkaPiechotaStratyAtakujacy;
+        gra->gracze[graczAtakujacy].cpiechota -= ciezkaPiechotaStratyAtakujacy;
+        gra->gracze[graczAtakujacy].jazda -= jazdaStratyAtakujacy;
     }
 }
 
