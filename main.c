@@ -5,6 +5,45 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
+    int graczObraniajacy;
+    if (graczAtakujacy == 0) {
+        printf("Gracz 0 atakuje gracza 1!\n");
+        graczObraniajacy = 1;
+    } else {
+        printf("Gracz 1 atakuje gracza 0!\n");
+        graczObraniajacy = 0;
+    }
+
+    int silaAtaku = gra->gracze[graczAtakujacy].lpiechota * 1 + gra->gracze[graczAtakujacy].cpiechota * 1.5 + gra->gracze[graczAtakujacy].jazda * 3.5;
+    int silaObrony = gra->gracze[graczObraniajacy].lpiechota * 1.2 + gra->gracze[graczObraniajacy].cpiechota * 3 + gra->gracze[graczObraniajacy].jazda * 1.2;
+    printf("Siła ataku: %d vs Siła obrony: %d\n", silaAtaku, silaObrony);
+    if (silaAtaku - silaObrony > 0) {
+        printf("Wszystkie jednostki obrońcy zostały zniszczone!\n");
+        gra->gracze[graczObraniajacy].lpiechota = 0;
+        gra->gracze[graczObraniajacy].cpiechota = 0;
+        gra->gracze[graczObraniajacy].jazda = 0;
+    } else {
+        printf("Atak został odparty!\n");
+        printf("Straty broniącego:\n");
+        int lekkaPiechotaStraty = gra->gracze[graczObraniajacy].lpiechota * (silaAtaku / silaObrony);
+        int ciezkaPiechotaStraty = gra->gracze[graczObraniajacy].cpiechota * (silaAtaku / silaObrony);
+        int jazdaStraty = gra->gracze[graczObraniajacy].jazda * (silaAtaku / silaObrony);
+        printf("Lekka piechota: %d, Ciężka piechota: %d, Jazda: %d\n", lekkaPiechotaStraty, ciezkaPiechotaStraty, jazdaStraty);
+
+
+        int silaAtaku = gra->gracze[graczObraniajacy].lpiechota * 1 + gra->gracze[graczObraniajacy].cpiechota * 1.5 + gra->gracze[graczObraniajacy].jazda * 3.5;
+        int silaObrony = gra->gracze[graczAtakujacy].lpiechota * 1.2 + gra->gracze[graczAtakujacy].cpiechota * 3 + gra->gracze[graczAtakujacy].jazda * 1.2;
+
+        printf("Straty atakującego:\n");
+        int lekkaPiechotaStratyAtakujacy = gra->gracze[graczAtakujacy].lpiechota * (silaAtaku / silaObrony);
+        int ciezkaPiechotaStratyAtakujacy = gra->gracze[graczAtakujacy].cpiechota * (silaAtaku / silaObrony);
+        int jazdaStratyAtakujacy = gra->gracze[graczAtakujacy].jazda * (silaAtaku / silaObrony);
+        printf("Lekka piechota: %d, Ciężka piechota: %d, Jazda: %d\n", lekkaPiechotaStratyAtakujacy, ciezkaPiechotaStratyAtakujacy, jazdaStratyAtakujacy);
+
+    }
+}
+
 int main() {
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
     //int surowce = 300;
@@ -56,7 +95,7 @@ int main() {
             OstCzas = 0;
         }
 
-        printf(".\n"); //test odpowiedzi programu
+        //printf(".\n"); //test odpowiedzi programu
         fflush(stdout);
 
         for (int i = 0; i < 2; i++) {
@@ -105,7 +144,10 @@ int main() {
                         printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                     }
                 }
-
+                // obsługa ataku
+                if(gra->gracze[i].komenda == CMD_ATAK) {
+                    symulacjaAtaku(gra, i);
+                }
                 // czyścimy komendę po wykonaniu
                 gra->gracze[i].komenda = CMD_BRAK;
             }
