@@ -1,5 +1,6 @@
 #define SHM_KEY 123
 #define MAX_GRACZY 2
+#define MAX_PRODUKCJA 1
 
 // --- Definicje Komend ---
 #define CMD_BRAK 0          // Pusto (serwer czeka)
@@ -9,6 +10,13 @@
 #define CMD_KUP_ROBOTNIKA 4
 #define CMD_ATAK 5
 
+struct aktualneZadanie {
+    int czyWolne;  // czy zadanie jest aktywne
+    int typ_jednostki; // typ jednostki do wyprodukowania
+    int ilosc;        // ilość jednostek do wyprodukowania
+    int czas_pozostaly; // pozostały czas produkcji
+};
+
 typedef struct {
     int surowce;
     int lpiechota;
@@ -16,6 +24,7 @@ typedef struct {
     int jazda;
     int robotnicy;
     int komenda;
+    struct aktualneZadanie produkcja[MAX_PRODUKCJA];
 } ZasobyGracza;
 
 struct GameMemory {

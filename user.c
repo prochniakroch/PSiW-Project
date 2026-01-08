@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
             printf("Dostępne komendy:\n");
             printf("status - wyświetla aktualny stan zasobów i jednostek gracza\n"); //tymczasowe
             printf("kup <typ_jednostki> <ilość> - kupuje określoną ilość jednostek danego typu\n");
-            printf("atak - \n");
+            printf("atak - atakuje drugiego gracza całą dostępną armią\n");
             printf("help - wyświetla pomoc\n");
             printf("wyjscie - kończy program\n");
         } else if (strncmp(command, "kup", 3) == 0) {
