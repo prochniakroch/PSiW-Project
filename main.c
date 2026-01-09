@@ -47,6 +47,8 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
         gra->gracze[graczAtakujacy].lpiechota -= lekkaPiechotaStratyAtakujacy;
         gra->gracze[graczAtakujacy].cpiechota -= ciezkaPiechotaStratyAtakujacy;
         gra->gracze[graczAtakujacy].jazda -= jazdaStratyAtakujacy;
+
+        gra->gracze[graczAtakujacy].czyAtakuje = 0;
     }
 }
 
@@ -208,8 +210,14 @@ int main() {
                 }
                 // obsługa ataku
                 if(gra->gracze[i].komenda == CMD_ATAK) {
-                    symulacjaAtaku(gra, i);
-                }
+                    if (gra->gracze[0].czyAtakuje == 0 && gra->gracze[1].czyAtakuje == 0) {
+                        gra->gracze[i].czyAtakuje = 1;
+                        gra->gracze[i].czasAtaku = 5; // czas ataku 5s
+                        symulacjaAtaku(gra, i);
+                    } else {
+                        printf("-> Błąd. Gracz %d już rozpoczął atak!\n", i); //do zmiany
+                    }
+                } 
                 // czyścimy komendę po wykonaniu
                 gra->gracze[i].komenda = CMD_BRAK;
             }

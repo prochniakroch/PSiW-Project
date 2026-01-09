@@ -24,6 +24,8 @@ typedef struct {
     int jazda;
     int robotnicy;
     int komenda;
+    int czyAtakuje;
+    int czasAtaku;
     struct aktualneZadanie produkcja[MAX_PRODUKCJA];
 } ZasobyGracza;
 
