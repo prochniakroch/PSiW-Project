@@ -1,7 +1,7 @@
 #define SHM_KEY 123
 #define SEM_KEY 456
 #define MAX_GRACZY 2
-#define MAX_PRODUKCJA 1
+#define MAX_PRODUKCJA 5
 
 // --- Definicje Komend ---
 #define CMD_BRAK 0          // Pusto (serwer czeka)

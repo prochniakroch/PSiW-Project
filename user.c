@@ -11,18 +11,28 @@
 // --- SEMAFORY ---
 static struct sembuf buf;
 
-void podnies(int semid, int semnum) {
+void podnies(int sem_id, int semnum) {
     buf.sem_num = semnum;
     buf.sem_op = 1;
     buf.sem_flg = 0;
+
+    if (semop(sem_id, &buf, 1) == -1) {
+        perror("błąd podnoszenia semafora");
+    }
 }
 
-void opusc(int semid, int semnum) {
+void opusc(int sem_id, int semnum) {
     buf.sem_num = semnum;
     buf.sem_op = -1;
     buf.sem_flg = 0;
+    
+    if (semop(sem_id, &buf, 1) == -1) {
+        perror("błąd opuszczania semafora");
+    }
 }
 
+
+// --- PROGRAM GŁÓWNY ---
 int main(int argc, char *argv[]) {
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
     int sem_id = semget(SEM_KEY, 1, 0);
@@ -56,10 +66,13 @@ int main(int argc, char *argv[]) {
         // Proces potomny - nasłuchiwanie komunikatów od serwera
         while(1) {
             if (gra->gracze[id_gracza].czyNowyKomunikat == 1) {
+                opusc(sem_id, 0);
                 printf("%s\n", gra->gracze[id_gracza].komunikat);
                 gra->gracze[id_gracza].czyNowyKomunikat = 0;
+                podnies(sem_id, 0);
             }
             if (gra->gracze[id_gracza].zmianaStanuZasobow == 1) {
+                opusc(sem_id, 0);
                 printf("Gracz %d - Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
                 id_gracza,
                 gra->gracze[id_gracza].surowce,
@@ -68,6 +81,7 @@ int main(int argc, char *argv[]) {
                 gra->gracze[id_gracza].jazda,
                 gra->gracze[id_gracza].robotnicy);
                 gra->gracze[id_gracza].zmianaStanuZasobow = 0;
+                podnies(sem_id, 0);
             }
             usleep(50000); // opóźnienie 0.1 sekundy
         }
@@ -96,7 +110,7 @@ int main(int argc, char *argv[]) {
                     printf("Nie można złożyć nowego zamówienia, poprzednie jest w trakcie realizacji.\n");
                     continue;
                 }
-
+                podnies(sem_id, 0);
                 if (strstr(command, "lpiechota") != NULL) {
                     gra->gracze[id_gracza].komenda = CMD_KUP_LPIECHOTA;
                     printf("Złożono zamówienie na lekką piechotę.\n");
@@ -112,10 +126,14 @@ int main(int argc, char *argv[]) {
                 } else {
                     printf("Nieznany typ jednostki. Dostępne typy: lpiechota, cpiechota, jazda, robotnik.\n");
                 }
+                opusc(sem_id, 0);
             } else if (strncmp(command, "atak", 4) == 0) {
+                podnies(sem_id, 0);
                 gra->gracze[id_gracza].komenda = CMD_ATAK;
                 printf("Złożono rozkaz ataku.\n");
+                opusc(sem_id, 0);
             } else if (strncmp(command, "status", 6) == 0) {
+                podnies(sem_id, 0);
                 printf("Gracz %d - Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
                 id_gracza,
                 gra->gracze[id_gracza].surowce,
@@ -123,6 +141,7 @@ int main(int argc, char *argv[]) {
                 gra->gracze[id_gracza].cpiechota,
                 gra->gracze[id_gracza].jazda,
                 gra->gracze[id_gracza].robotnicy);
+                opusc(sem_id, 0);
             } else {
                 printf("Nieznana komenda. Wpisz 'help' aby uzyskać pomoc.\n");
             }
