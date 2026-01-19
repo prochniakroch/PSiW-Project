@@ -1,9 +1,27 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/shm.h>
+#include <sys/sem.h>
+#include <sys/ipc.h>
 #include "gameMemory.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+
+// --- SEMAFORY ---
+static struct sembuf buf;
+
+void podnies(int sem_id, int semnum) {
+    buf.sem_num = semnum;
+    buf.sem_op = 1;
+    buf.sem_flg = 0;
+}
+
+void opusc(int sem_id, int semnum) {
+    buf.sem_num = semnum;
+    buf.sem_op = -1;
+    buf.sem_flg = 0;
+}
 
 void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
     int graczObraniajacy;
@@ -54,6 +72,7 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
 
 int main() {
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
+    int sem_id = semget(SEM_KEY, 1, 0);
     //int surowce = 300;
     //int lpiechota = 0; //100 1A 1.2O 2s
     //int cpiechota = 0; //250 1.5A 3O 3s
@@ -100,6 +119,8 @@ int main() {
         if (OstCzas == 100) {
             gra->gracze[0].surowce += 50 + (gra->gracze[0].robotnicy * 5);
             gra->gracze[1].surowce += 50 + (gra->gracze[1].robotnicy * 5);
+            gra->gracze[0].zmianaStanuZasobow = 1;
+            gra->gracze[1].zmianaStanuZasobow = 1;
             OstCzas = 0;
         }
 
@@ -164,8 +185,12 @@ int main() {
                         gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_ROBOTNIKA;
                         gra->gracze[i].produkcja[0].ilosc = 1;
                         gra->gracze[i].produkcja[0].czas_pozostaly = 200; // czas produkcji robotnika  
+                        strcpy(gra->gracze[i].komunikat, "[SUKCES] Robotnik jest w produkcji.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Sukces. Gracz %d ma teraz %d robotników (w produkcji).\n", i, gra->gracze[i].robotnicy);
                     } else {
+                        strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup robotnika.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                     }
                 }
@@ -177,8 +202,12 @@ int main() {
                         gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_LPIECHOTA;
                         gra->gracze[i].produkcja[0].ilosc = 1;
                         gra->gracze[i].produkcja[0].czas_pozostaly = 200; // czas produkcji lekkiej piechoty
+                        strcpy(gra->gracze[i].komunikat, "[SUKCES] Lekka piechota jest w produkcji.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Sukces. Gracz %d ma teraz %d lekkiej piechoty (w produkcji).\n", i, gra->gracze[i].lpiechota);
                     } else {
+                        strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup lekkiej piechoty.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                     }
                 }
@@ -190,8 +219,12 @@ int main() {
                         gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_CPIECHOTA;
                         gra->gracze[i].produkcja[0].ilosc = 1;
                         gra->gracze[i].produkcja[0].czas_pozostaly = 300; // czas produkcji ciężkiej piechoty
+                        strcpy(gra->gracze[i].komunikat, "[SUKCES] Ciężka piechota jest w produkcji.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Sukces. Gracz %d ma teraz %d ciężkiej piechoty (w produkcji).\n", i, gra->gracze[i].cpiechota);
                     } else {
+                        strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup ciężkiej piechoty.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                     }
                 }
@@ -203,8 +236,12 @@ int main() {
                         gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_JAZDA;
                         gra->gracze[i].produkcja[0].ilosc = 1;
                         gra->gracze[i].produkcja[0].czas_pozostaly = 500; // czas produkcji jazdy
+                        strcpy(gra->gracze[i].komunikat, "[SUKCES] Jazda jest w produkcji.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Sukces. Gracz %d ma teraz %d jazdy (w produkcji).\n", i, gra->gracze[i].jazda);
                     } else {
+                        strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup jazdy.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
                         printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                     }
                 }
@@ -214,9 +251,9 @@ int main() {
                         gra->gracze[i].czyAtakuje = 1;
                         gra->gracze[i].czasAtaku = 5; // czas ataku 5s
                         symulacjaAtaku(gra, i);
-                    } else {
-                        printf("-> Błąd. Gracz %d już rozpoczął atak!\n", i); //do zmiany
-                    }
+                        strcpy(gra->gracze[i].komunikat, "[SUKCES] Przygotowanie do ataku 5s.");
+                        gra->gracze[i].czyNowyKomunikat = 1;
+                    } 
                 } 
                 // czyścimy komendę po wykonaniu
                 gra->gracze[i].komenda = CMD_BRAK;

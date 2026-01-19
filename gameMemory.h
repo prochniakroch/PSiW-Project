@@ -1,4 +1,5 @@
 #define SHM_KEY 123
+#define SEM_KEY 456
 #define MAX_GRACZY 2
 #define MAX_PRODUKCJA 1
 
@@ -26,6 +27,9 @@ typedef struct {
     int komenda;
     int czyAtakuje;
     int czasAtaku;
+    char komunikat[100];
+    int czyNowyKomunikat;
+    int zmianaStanuZasobow;
     struct aktualneZadanie produkcja[MAX_PRODUKCJA];
 } ZasobyGracza;
 
