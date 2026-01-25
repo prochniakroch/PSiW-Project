@@ -39,10 +39,34 @@ int ktoAtakuje = -1;
 
 
 // --- FUNKCJE ---
+void dodajDoProdukcji(struct GameMemory *gra, int jednostka) {
+    // Implementacja dodawania jednostki do produkcji
+}
+
+void usunZProdukcji(struct GameMemory *gra) {
+    // Implementacja usuwania jednostki z produkcji
+}
+
+void sprawdzCzyWygrana(struct GameMemory *gra, int gracz){
+    if (gra->gracze[gracz].iloscWygranychAtakow >= 5) {
+        printf("Gracz %d wygrał grę!\n", gracz);
+        if (gracz == 0) {
+            strcpy(gra->gracze[0].komunikat, "[SERWER] Wygrałeś grę!\n");
+            strcpy(gra->gracze[1].komunikat, "[SERWER] Przegrałeś grę!\n");
+        } else if (gracz == 1) {
+            strcpy(gra->gracze[1].komunikat, "[SERWER] Wygrałeś grę!\n");
+            strcpy(gra->gracze[0].komunikat, "[SERWER] Przegrałeś grę!\n");
+        }
+        gra->gracze[0].czyNowyKomunikat = 1;
+        gra->gracze[1].czyNowyKomunikat = 1;
+        gra->gra_aktywna = 0;
+    }
+}
+
 int sprawdzCzyMozeAtakowac(struct GameMemory *gra, int graczAtakujacy) {
     if (gra->gracze[graczAtakujacy].lpiechota * 1 + gra->gracze[graczAtakujacy].cpiechota * 1.5 + gra->gracze[graczAtakujacy].jazda * 3.5 == 0) {
         printf("Atakujący nie ma jednostek do ataku!\n");
-        strcpy(gra->gracze[graczAtakujacy].komunikat, "[BŁĄD] Nie masz jednostek do ataku!\n");
+        strcpy(gra->gracze[graczAtakujacy].komunikat, "[SERWER] Nie masz jednostek do ataku!\n");
         gra->gracze[graczAtakujacy].czyNowyKomunikat = 1;
         return 0;
     } else {
@@ -66,8 +90,9 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
 
     if (silaObrony == 0) {
         printf("Obrońca nie ma jednostek do obrony! Wszystkie jednostki atakującego przechodzą bez strat.\n");
-        strcpy(gra->gracze[graczAtakujacy].komunikat, "[SUKCES] Wszystkie twoje jednostki przeszły bez strat!\n");
+        strcpy(gra->gracze[graczAtakujacy].komunikat, "[SERWER] Wszystkie twoje jednostki przeszły bez strat!\n");
         gra->gracze[graczAtakujacy].czyNowyKomunikat = 1;
+        gra->gracze[graczAtakujacy].iloscWygranychAtakow += 1;
         return;
     }
 
@@ -76,7 +101,9 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
         gra->gracze[graczObraniajacy].lpiechota = 0;
         gra->gracze[graczObraniajacy].cpiechota = 0;
         gra->gracze[graczObraniajacy].jazda = 0;
+        gra->gracze[graczAtakujacy].iloscWygranychAtakow += 1;
     } else {
+        //OBLICZANIE STRAT PODCZAS ATAKU
         printf("Atak został odparty!\n");
         printf("Straty broniącego:\n");
         int lekkaPiechotaStraty = gra->gracze[graczObraniajacy].lpiechota * (silaAtaku / silaObrony);
@@ -93,6 +120,8 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
         int ciezkaPiechotaStratyAtakujacy = gra->gracze[graczAtakujacy].cpiechota * (silaAtaku / silaObrony);
         int jazdaStratyAtakujacy = gra->gracze[graczAtakujacy].jazda * (silaAtaku / silaObrony);
         printf("Lekka piechota: %d, Ciężka piechota: %d, Jazda: %d\n", lekkaPiechotaStratyAtakujacy, ciezkaPiechotaStratyAtakujacy, jazdaStratyAtakujacy);
+        
+        
         gra->gracze[graczObraniajacy].lpiechota -= lekkaPiechotaStraty;
         gra->gracze[graczObraniajacy].cpiechota -= ciezkaPiechotaStraty;
         gra->gracze[graczObraniajacy].jazda -= jazdaStraty;
@@ -111,12 +140,7 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
 int main() {
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
     int sem_id = semget(SEM_KEY, 1, IPC_CREAT | 0640);
-    podnies(sem_id, 0); // inicjalizacja semafora
-    //int surowce = 300;
-    //int lpiechota = 0; //100 1A 1.2O 2s
-    //int cpiechota = 0; //250 1.5A 3O 3s
-    //int jazda = 0; //550 3.5A 1.2O 5s
-    //int robotnicy = 0; //150 0A 0O 2s
+    podnies(sem_id, 0);
 
     struct GameMemory *gra = (struct GameMemory*) shmat(shm_id, NULL, 0);
     //Inicjalizacja 
@@ -125,14 +149,16 @@ int main() {
     gra->gracze[0].cpiechota = 0;
     gra->gracze[0].jazda = 0;
     gra->gracze[0].robotnicy = 0;
+    gra->gracze[0].iloscWygranychAtakow = 0;
 
     gra->gracze[1].surowce = 300;
     gra->gracze[1].lpiechota = 0;
     gra->gracze[1].cpiechota = 0;
     gra->gracze[1].jazda = 0;
     gra->gracze[1].robotnicy = 0;
+    gra->gracze[1].iloscWygranychAtakow = 0;
 
-    gra->gra_aktywna = 0;
+    gra->gra_aktywna = 1;
 
     printf("Inicjalizacja pamięci zakończona.\n");
 
@@ -152,6 +178,11 @@ int main() {
            gra->gracze[1].robotnicy);
 
     while(1) {
+        // sprawdz czy gra jest aktywna
+        if (gra->gra_aktywna == 0) {
+            printf("Gra zakończona.\n");
+            break;
+        }
 
         // dodawanie surowców co turę
         if (OstCzas == 100) {
@@ -177,6 +208,7 @@ int main() {
         fflush(stdout);
 
         for (int i = 0; i < 2; i++) {
+            sprawdzCzyWygrana(gra, i);
             // --- OBSŁUGA PRODUKCJI JEDNOSTEK ---
             // DO ZMIANY NA WIELOPRODUKCYJNOŚĆ!!!
             if (gra->gracze[i].produkcja[0].czyWolne == 1) {
@@ -235,11 +267,11 @@ int main() {
                             gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_ROBOTNIKA;
                             gra->gracze[i].produkcja[0].ilosc = 1;
                             gra->gracze[i].produkcja[0].czas_pozostaly = 200; // czas produkcji robotnika  
-                            strcpy(gra->gracze[i].komunikat, "[SUKCES] Robotnik jest w produkcji.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Robotnik jest w produkcji.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Sukces. Gracz %d ma teraz %d robotników (w produkcji).\n", i, gra->gracze[i].robotnicy);
                         } else {
-                            strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup robotnika.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Za mało surowców na zakup robotnika.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                         }
@@ -252,11 +284,11 @@ int main() {
                             gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_LPIECHOTA;
                             gra->gracze[i].produkcja[0].ilosc = 1;
                             gra->gracze[i].produkcja[0].czas_pozostaly = 200; // czas produkcji lekkiej piechoty
-                            strcpy(gra->gracze[i].komunikat, "[SUKCES] Lekka piechota jest w produkcji.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Lekka piechota jest w produkcji.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Sukces. Gracz %d ma teraz %d lekkiej piechoty (w produkcji).\n", i, gra->gracze[i].lpiechota);
                         } else {
-                            strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup lekkiej piechoty.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Za mało surowców na zakup lekkiej piechoty.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                         }
@@ -269,11 +301,11 @@ int main() {
                             gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_CPIECHOTA;
                             gra->gracze[i].produkcja[0].ilosc = 1;
                             gra->gracze[i].produkcja[0].czas_pozostaly = 300; // czas produkcji ciężkiej piechoty
-                            strcpy(gra->gracze[i].komunikat, "[SUKCES] Ciężka piechota jest w produkcji.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Ciężka piechota jest w produkcji.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Sukces. Gracz %d ma teraz %d ciężkiej piechoty (w produkcji).\n", i, gra->gracze[i].cpiechota);
                         } else {
-                            strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup ciężkiej piechoty.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Za mało surowców na zakup ciężkiej piechoty.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                         }
@@ -286,11 +318,11 @@ int main() {
                             gra->gracze[i].produkcja[0].typ_jednostki = CMD_KUP_JAZDA;
                             gra->gracze[i].produkcja[0].ilosc = 1;
                             gra->gracze[i].produkcja[0].czas_pozostaly = 500; // czas produkcji jazdy
-                            strcpy(gra->gracze[i].komunikat, "[SUKCES] Jazda jest w produkcji.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Jazda jest w produkcji.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Sukces. Gracz %d ma teraz %d jazdy (w produkcji).\n", i, gra->gracze[i].jazda);
                         } else {
-                            strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało surowców na zakup jazdy.");
+                            strcpy(gra->gracze[i].komunikat, "[SERWER] Za mało surowców na zakup jazdy.");
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("-> Błąd. Gracz %d ma za mało surowców!\n", i);
                         }
@@ -300,12 +332,12 @@ int main() {
                         if (ktoAtakuje == -1) {
                             ktoAtakuje = i;
                             if (sprawdzCzyMozeAtakowac(gra, ktoAtakuje) == 0) {
-                                strcpy(gra->gracze[i].komunikat, "[BŁĄD] Za mało jednostek do ataku.\n");
+                                strcpy(gra->gracze[i].komunikat, "[SERWER] Za mało jednostek do ataku.\n");
                                 gra->gracze[i].czyNowyKomunikat = 1;
                                 ktoAtakuje = -1;
                             } else if (sprawdzCzyMozeAtakowac(gra, ktoAtakuje) == 1) {
                                 czasAtaku = 500; // czas ataku 5s
-                                strcpy(gra->gracze[i].komunikat, "[SUKCES] Przygotowanie do ataku 5s.\n");
+                                strcpy(gra->gracze[i].komunikat, "[SERWER] Przygotowanie do ataku 5s.\n");
                                 gra->gracze[i].czyNowyKomunikat = 1;
                             }
                         } 
