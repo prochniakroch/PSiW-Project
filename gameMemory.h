@@ -25,6 +25,7 @@ typedef struct {
     int jazda;
     int robotnicy;
     int komenda;
+    int komendaIlosc;
     int czyAtakuje;
     int czasAtaku;
     int iloscWygranychAtakow;
