@@ -5,40 +5,12 @@
 #include <sys/ipc.h>
 #include <signal.h>
 #include "gameMemory.h"
+#include "protocol.h"
 #include <string.h>
 #include <unistd.h>
 
-// --- SEMAFORY ---
-static struct sembuf buf;
-
-void podnies(int sem_id, int semnum) {
-    buf.sem_num = semnum;
-    buf.sem_op = 1;
-    buf.sem_flg = 0;
-
-    if (semop(sem_id, &buf, 1) == -1) {
-        perror("błąd podnoszenia semafora");
-    }
-}
-
-void opusc(int sem_id, int semnum) {
-    buf.sem_num = semnum;
-    buf.sem_op = -1;
-    buf.sem_flg = 0;
-    
-    if (semop(sem_id, &buf, 1) == -1) {
-        perror("błąd opuszczania semafora");
-    }
-}
-
-
 // --- PROGRAM GŁÓWNY ---
 int main(int argc, char *argv[]) {
-    int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
-    int sem_id = semget(SEM_KEY, 1, 0);
-
-    struct GameMemory *gra = (struct GameMemory*) shmat(shm_id, NULL, 0);
-
     if (argc != 2) {
         printf("Użycie: %s <id_gracza>\n", argv[0]);
         return 1;
@@ -49,121 +21,148 @@ int main(int argc, char *argv[]) {
     }
     int id_gracza = argv[1][0] - '0';
 
-    printf("Gracz %d - Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
-       id_gracza,
-       gra->gracze[id_gracza].surowce,
-       gra->gracze[id_gracza].lpiechota,
-       gra->gracze[id_gracza].cpiechota,
-       gra->gracze[id_gracza].jazda,
-       gra->gracze[id_gracza].robotnicy);
 
-    printf("Wpisz komendę (format: <typ_jednostki> <ilość>) lub 'wyjscie' aby zakończyć:\n");   
-
-    pid_t pid = fork();
+    // --- INICJALIZACJA KOLEJEK KOMUNIKATÓW ---
+    // SERWER
+    int fd_serwer = open(FIFO_FILE, O_WRONLY);
+    if (fd_serwer == -1) {
+        perror("[BŁĄD] Brak połączenia z serwerem gry.\n");
+        return 1;
+    }
+    // KLIENT
+    char *my_fifo;
+    if (id_gracza == 0) {
+        my_fifo = CLIENT_0_FIFO_FILE;
+    } else {
+        my_fifo = CLIENT_1_FIFO_FILE;
+    }
+    mkfifo(my_fifo, 0666);
+    int fd_klient = open(my_fifo, O_RDWR);
+    if (fd_klient == -1) {
+        perror("[BŁĄD] Nie można otworzyć kolejki klienta.\n");
+        return 1;
+    }
     
 
+    // --- GŁÓWNA PĘTLA PROGRAMU ---
+    pid_t pid = fork();
     if (pid == 0) {
         // Proces potomny - nasłuchiwanie komunikatów od serwera
         while(1) {
-            if (gra->gracze[id_gracza].czyNowyKomunikat == 1) {
-                opusc(sem_id, 0);
-                printf("%s\n", gra->gracze[id_gracza].komunikat);
-                gra->gracze[id_gracza].czyNowyKomunikat = 0;
-                podnies(sem_id, 0);
-            }
-            if (gra->gracze[id_gracza].zmianaStanuZasobow == 1) {
-                opusc(sem_id, 0);
-                printf("Gracz %d - Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
-                id_gracza,
-                gra->gracze[id_gracza].surowce,
-                gra->gracze[id_gracza].lpiechota,
-                gra->gracze[id_gracza].cpiechota,
-                gra->gracze[id_gracza].jazda,
-                gra->gracze[id_gracza].robotnicy);
-                gra->gracze[id_gracza].zmianaStanuZasobow = 0;
-                podnies(sem_id, 0);
+            struct pakietOdp odpowiedz;
+            int bajtyOdp = read(fd_klient, &odpowiedz, sizeof(odpowiedz));
+            if (bajtyOdp > 0) {
+                printf("[SERWER] -  %s\n", odpowiedz.komunikat);
             }
             usleep(50000); // opóźnienie 0.1 sekundy
         }
     } else {
         // Proces macierzysty - wysyłanie komend do serwera
         while(1) {
+            // Wczytywanie komendy od użytkownika
+            struct pakiet wysylany;
             char command[50];
-            char akcja[20];
-            char coKupic[20];
-            int ileKupic;
+            int bajty = read(0, command, sizeof(command) - 1);
+            if (bajty > 0) {
+                command[bajty - 1] = '\0'; // Usuń znak nowej linii
+            } else {
+                continue; // Nic nie wpisano
+            }
+            wysylany.idGracza = id_gracza;
 
-            // Pobierz komendę od użytkownika
-            fgets(command, sizeof(command), stdin);
-            int liczbaElementow = sscanf(command, "%s %s %d", akcja, coKupic, &ileKupic);
+            // Przetwarzanie komendy
+            if (strcmp(command, "help", 4) == 0) {
+                printf("Dostępne komendy:\n");
+                printf("kup - kupuje określoną ilość jednostek danego typu\n");
+                printf("atak - atakuje drugiego gracza całą dostępną armią\n");
+                printf("help - wyświetla pomoc\n");
+                printf("wyjscie - kończy program\n");
+                continue;
+            } else if (strncmp(command, "kup", 3) == 0) {
+                char coKupic[20];
+                int ileKupic;
+                printf("Co chcesz kupić? (lpiechota, cpiechota, jazda, robotnik) \n");
+                int bajty = read(0, coKupic, sizeof(coKupic) - 1);
+                if (bajty > 0) {
+                    coKupic[bajty - 1] = '\0';
+                } else {
+                    printf("Nieprawidłowa komenda. Możliwe do wyboru: lpiechota, cpiechota, jazda, robotnik\n");
+                    continue;
+                }
+                printf("Ile chcesz kupić? \n");
+                int bajty = read(0, ileKupic, sizeof(ileKupic) - 1);
+                if (bajty > 0) {
+                    ileKupic[bajty - 1] = '\0';
+                } else {
+                    printf("Nieprawidłowa komenda. Podaj ilość jednostek do kupienia np. 3\n");
+                    continue;
+                }
 
-            // Przetwarzanie komendy -> wysyłanie do serwera
-            if (liczbaElementow == 1) { 
-                // 
-                if (strncmp(akcja, "wyjscie", 7) == 0) {
-                    kill(pid, SIGKILL); 
-                    shmdt(gra);
-                    break;
-                } else if (strncmp(akcja, "help", 4) == 0){
-                    printf("Dostępne komendy:\n");
-                    printf("status - wyświetla aktualny stan zasobów i jednostek gracza\n"); //tymczasowe
-                    printf("kup <typ_jednostki> <ilość> - kupuje określoną ilość jednostek danego typu\n");
-                    printf("atak - atakuje drugiego gracza całą dostępną armią\n");
-                    printf("help - wyświetla pomoc\n");
-                    printf("wyjscie - kończy program\n");
-                } else if (strncmp(akcja, "atak", 4) == 0) {
-                    opusc(sem_id, 0);
-                    gra->gracze[id_gracza].komenda = CMD_ATAK;
-                    printf("Złożono rozkaz ataku.\n");
-                    podnies(sem_id, 0);
-                } else if (strncmp(akcja, "status", 6) == 0) {
-                    opusc(sem_id, 0);
-                    printf("Gracz %d - Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
-                    id_gracza,
-                    gra->gracze[id_gracza].surowce,
-                    gra->gracze[id_gracza].lpiechota,
-                    gra->gracze[id_gracza].cpiechota,
-                    gra->gracze[id_gracza].jazda,
-                    gra->gracze[id_gracza].robotnicy);
-                    podnies(sem_id, 0);
-                } else {
-                    printf("Nieznana komenda. Wpisz 'help' aby uzyskać pomoc.\n");
+                wysylany.komenda = CMD_KUP;
+                if (strcmp(coKupic, "lpiechota") == 0) {
+                    wysylany.typJednostki = KUP_LEKKA_PIECHOTA;
+                } else if (strcmp(coKupic, "cpiechota") == 0) {
+                    wysylany.typJednostki = KUP_CIEZKA_PIECHOTA;
+                } else if (strcmp(coKupic, "jazda") == 0) {
+                    wysylany.typJednostki = KUP_JAZDA;
+                } else if (strcmp(coKupic, "robotnik") == 0) {
+                    wysylany.typJednostki = KUP_ROBOTNIK;
                 }
-            } else if (liczbaElementow == 3) {
-                if (strncmp(akcja, "kup", 3) == 0) {
-                    if (ileKupic <= 0) {
-                        printf("Nieprawidłowa ilość jednostek do kupienia. Musi być większa od 0.\n");
-                        continue;
-                    }
-                    opusc(sem_id, 0);
-                    if (strncmp(coKupic, "lpiechota", 14) == 0) {
-                        gra->gracze[id_gracza].komenda = CMD_KUP_LPIECHOTA;
-                        gra->gracze[id_gracza].komendaIlosc = ileKupic;
-                        printf("Złożono rozkaz zakupu %d lekkiej piechoty.\n", ileKupic);
-                    } else if (strncmp(coKupic, "cpiechota", 16) == 0) {
-                        gra->gracze[id_gracza].komenda = CMD_KUP_CPIECHOTA;
-                        gra->gracze[id_gracza].komendaIlosc = ileKupic;
-                        printf("Złożono rozkaz zakupu %d ciężkiej piechoty.\n", ileKupic);
-                    } else if (strncmp(coKupic, "jazda", 5) == 0) {
-                        gra->gracze[id_gracza].komenda = CMD_KUP_JAZDA;
-                        gra->gracze[id_gracza].komendaIlosc = ileKupic;
-                        printf("Złożono rozkaz zakupu %d jazdy.\n", ileKupic);
-                    } else if (strncmp(coKupic, "robotnik", 8) == 0) {
-                        gra->gracze[id_gracza].komenda = CMD_KUP_ROBOTNIKA;
-                        gra->gracze[id_gracza].komendaIlosc = ileKupic;
-                        printf("Złożono rozkaz zakupu %d robotników.\n", ileKupic);
-                    } else {
-                        printf("Nieznany typ jednostki. Dostępne typy: lpiechota, cpiechota, jazda, robotnik.\n");
-                    }
-                    podnies(sem_id, 0);
-                } else {
-                    printf("Nieznana komenda. Wpisz 'help' aby uzyskać pomoc.\n");
+                wysylany.ilosc = ileKupic;
+
+                int czyWyslano = write(fd_serwer, &wysylany, sizeof(wysylany));
+                if (czyWyslano == -1) {
+                    perror("[BŁĄD] Nie udało się wysłać komendy do serwera.\n");
                 }
+
+            } else if (strncmp(command, "atak", 4) == 0) {
+                int ileLP;
+                int ileCP;
+                int ileJazdy;
+                printf("Ile lekkiej piechoty wysłać do ataku? \n");
+                int bajty = read(0, ileLP, sizeof(ileLP) - 1);
+                if (bajty > 0) {
+                    ileLP[bajty - 1] = '\0';
+                } else {
+                    ileCP = 0;
+                }
+                printf("Ile ciężkiej piechoty wysłać do ataku? \n");
+                int bajty = read(0, ileCP, sizeof(ileCP) - 1);
+                if (bajty > 0) {
+                    ileCP[bajty - 1] = '\0';
+                } else {
+                    ileCP = 0;
+                }
+                printf("Ile jazdy wysłać do ataku? \n");
+                int bajty = read(0, ileJazdy, sizeof(ileJazdy) - 1);
+                if (bajty > 0) {
+                    ileJazdy[bajty - 1] = '\0';
+                } else {
+                    ileJazdy = 0;
+                }
+                wysylany.komenda = CMD_ATAK;
+                wysylany.ileLP = ileLP;
+                wysylany.ileCP = ileCP;
+                wysylany.ileJazdy = ileJazdy;
+                
+                int czyWyslano = write(fd_serwer, &wysylany, sizeof(wysylany));
+                if (czyWyslano == -1) {
+                    perror("[BŁĄD] Nie udało się wysłać komendy do serwera.\n");
+                }
+
+            } else if (strncmp(command, "wyjscie", 7) == 0) {
+                printf("Zakończenie programu gracza %d.\n", id_gracza);
+                break;
             } else {
                 printf("Nieznana komenda. Wpisz 'help' aby uzyskać pomoc.\n");
+                continue;
             }
         }
     }
-    kill(pid, SIGKILL); 
-    shmdt(gra);
+
+    // Czyszczenie zasobów przed zakończeniem programu
+    close(fd_serwer);
+    close(fd_klient);
+    unlink(my_fifo);
+    return 0;
 }

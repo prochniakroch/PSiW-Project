@@ -1,5 +1,6 @@
 #define SHM_KEY 123
 #define SEM_KEY 456
+#define MSG_KEY 420
 #define MAX_GRACZY 2
 #define MAX_PRODUKCJA 5
 
@@ -18,6 +19,12 @@ struct aktualneZadanie {
     int czas_pozostaly; // pozostały czas produkcji
 };
 
+struct wTrakcieAtaku {
+    int lpiechota;
+    int cpiechota;
+    int jazda;
+};
+
 typedef struct {
     int surowce;
     int lpiechota;
@@ -33,6 +40,7 @@ typedef struct {
     int czyNowyKomunikat;
     int zmianaStanuZasobow;
     struct aktualneZadanie produkcja[MAX_PRODUKCJA];
+    struct wTrakcieAtaku;
 } ZasobyGracza;
 
 struct GameMemory {

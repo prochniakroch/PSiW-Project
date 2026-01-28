@@ -128,6 +128,24 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
     }
 }
 
+void doAtaku(struct GameMemory *gra, int graczAtakujacy, int liczbaLP, int liczbaCP, int liczbaJazdy) {
+    gra->gracze[graczAtakujacy].lpiechota -= liczbaLP;
+    gra->gracze[graczAtakujacy].cpiechota -= liczbaCP;
+    gra->gracze[graczAtakujacy].jazda -= liczbaJazdy;
+    gra->gracze[graczAtakujacy].podczasAtaku.lpiechota = liczbaLP;
+    gra->gracze[graczAtakujacy].podczasAtaku.cpiechota = liczbaCP;
+    gra->gracze[graczAtakujacy].podczasAtaku.jazda = liczbaJazdy;
+}
+
+void poAtaku(struct GameMemory *gra, int graczAtakujacy, int liczbaLP, int liczbaCP, int liczbaJazdy) {
+    gra->gracze[graczAtakujacy].podczasAtaku.lpiechota = 0;
+    gra->gracze[graczAtakujacy].podczasAtaku.cpiechota = 0;
+    gra->gracze[graczAtakujacy].podczasAtaku.jazda = 0;
+    gra->gracze[graczAtakujacy].lpiechota += liczbaLP;
+    gra->gracze[graczAtakujacy].cpiechota += liczbaCP;
+    gra->gracze[graczAtakujacy].jazda += liczbaJazdy;
+}
+
 // --- FUNCKJE ZWIĄZANE Z PRODUKCJĄ ---
 void inicjujProdukcje(struct GameMemory *gra) {
     for (int i = 0; i < MAX_PRODUKCJA; i++) {
