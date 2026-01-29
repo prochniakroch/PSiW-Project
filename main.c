@@ -216,11 +216,11 @@ void przesunProdukcja(struct GameMemory *gra, int gracz) {
 
 // --- PROGRAM GŁÓWNY ---
 int main() {
+    // Inicjalizacja pamięci współdzielonej i semaforów
     int shm_id = shmget(SHM_KEY, sizeof(struct GameMemory) , IPC_CREAT | 0640);
     int sem_id = semget(SEM_KEY, 1, IPC_CREAT | 0640);
     podnies(sem_id, 0);
 
-    //Inicjalizacja 
     struct GameMemory *gra = (struct GameMemory*) shmat(shm_id, NULL, 0);
 
     inicjujProdukcje(gra);
@@ -241,8 +241,51 @@ int main() {
 
     gra->gra_aktywna = 1;
 
-    printf("Inicjalizacja pamięci zakończona.\n");
+    printf("[INICJALIZACJA] Pamięc gotowa.\n");
 
+    // Inicjalizacja kolejek komunikatów (1/2)
+    // SERWER
+    mkfifo(FIFO_FILE, 0666);
+    int fd_serwer = open(FIFO_FILE, O_RDWR);
+    if (fd_serwer == -1) {
+        perror("[BŁĄD] Nie można utworzyć kolejki serwera.\n");
+        return 1;
+    }
+    struct pakiet komendy;
+
+    // --- OCZEKIWANIE NA GRACZY ---
+    printf("[INICJALIZACJA] Oczekiwanie na graczy.\n");
+    int graczeGotowi[2] = {0, 0};
+    int liczbaGraczy = 0;
+
+    while (liczbaGraczy < 2) {
+        int bajty = read(fd_serwer, &komendy, sizeof(komendy));
+        if (bajty > 0) {
+            if (komendy.komenda == CMD_START && graczeGotowi[komendy.idGracza] == 0) {
+                graczeGotowi[komendy.idGracza] = 1;
+                liczbaGraczy++;
+                printf("[INICJALIZACJA] Gracz %d dołączył do gry. (%d/2)\n", komendy.idGracza, liczbaGraczy);
+            }
+        }
+        usleep(100000); // opóźnienie 0.1 sekundy
+    }
+    printf("[INICJALIZACJA] Wszyscy dołączyli.")
+
+    // Inicjalizacja kolejek komunikatów (2/2)
+    // KLIENT
+    int fd_klient0 = open(CLIENT_0_FIFO_FILE, O_WRONLY);
+    if (fd_klient0 == -1) {
+        perror("[BŁĄD] Brak komunakcji z klientem 0.\n");
+        return 1;
+    }
+
+    int fd_klient1 = open(CLIENT_1_FIFO_FILE, O_WRONLY);
+    if (fd_klient1 == -1) {
+        perror("[BŁĄD] Brak komunakcji z klientem 1.\n");
+        return 1;
+    }
+
+    printf("[INICJALIZACJA] Kolejki komunikatów gotowe.\n");
 
     printf("Gracz 0 - Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
            gra->gracze[0].surowce,
@@ -404,6 +447,10 @@ int main() {
     }
 
     //zamykanie pamięci współdzielonej
+    close(fd_serwer);
+    close(fd_klient0);
+    close(fd_klient1);
+    unlick(FIFO_FILE);
     shmdt(gra);
     return 0;
 }

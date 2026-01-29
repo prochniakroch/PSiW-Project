@@ -43,6 +43,30 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
+    // --- LOGOWANIE DO GRY ---
+    struct pakiet komendy;
+    komendy.idGracza = id_gracza;
+    komendy.komenda = CMD_LOGIN;
+    int czyWyslano = write(fd_serwer, &komendy, sizeof(komendy));
+    if (czyWyslano == -1) {
+        perror("[BŁĄD] Nie udało się wysłać komendy logowania do serwera.\n");
+        return 1;
+    }
+
+    printf("[INICJALIZACJA] Zalogowano gracza %d do gry.\n", id_gracza);
+    printf("[INICJALIZACJA] Oczekiwanie na drugiego gracza.\n");
+
+    struct pakietOdp odpowiedz;
+    while(1) {
+        int bajty = read(fd_klient, &odpowiedz, sizeof(odpowiedz));
+        if (bajty > 0) {
+            if (odpowiedz.typ == CMD_START) {
+                printf("[INICJALIZACJA] %s\n", odpowiedz.komunikat);
+                break;
+            }
+        usleep(100000); // opóźnienie 0.1 sekundy
+        }
+    }
 
     // --- GŁÓWNA PĘTLA PROGRAMU ---
     pid_t pid = fork();
@@ -144,7 +168,7 @@ int main(int argc, char *argv[]) {
                 wysylany.ileLP = ileLP;
                 wysylany.ileCP = ileCP;
                 wysylany.ileJazdy = ileJazdy;
-                
+
                 int czyWyslano = write(fd_serwer, &wysylany, sizeof(wysylany));
                 if (czyWyslano == -1) {
                     perror("[BŁĄD] Nie udało się wysłać komendy do serwera.\n");
