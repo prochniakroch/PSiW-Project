@@ -6,11 +6,20 @@
 
 // --- Definicje Komend ---
 #define CMD_BRAK 0          // Pusto (serwer czeka)
+#define CMD_KUP 1          // Kup jednostki
+#define CMD_ATAK 2         // Atakuj przeciwnika
+
+// --- Definicje Typów Jednostek ---
 #define CMD_KUP_LPIECHOTA 1
 #define CMD_KUP_CPIECHOTA 2
 #define CMD_KUP_JAZDA 3
 #define CMD_KUP_ROBOTNIKA 4
-#define CMD_ATAK 5
+
+// --- TYPY ODPOWIEDZI ---
+#define INFO 1
+#define BLAD 2
+#define SUKCES 3
+#define AKTUALIZACJA 4
 
 struct aktualneZadanie {
     int czyWolne;  // czy zadanie jest aktywne
@@ -32,11 +41,13 @@ typedef struct {
     int jazda;
     int robotnicy;
     int komenda;
+    int komendaTyp;
     int komendaIlosc;
     int czyAtakuje;
     int czasAtaku;
     int iloscWygranychAtakow;
-    char komunikat[100];
+    char komunikat[256];
+    int jakiKomunikat;
     int czyNowyKomunikat;
     int zmianaStanu;
     struct aktualneZadanie produkcja[MAX_PRODUKCJA];

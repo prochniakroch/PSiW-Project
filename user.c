@@ -1,13 +1,13 @@
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/shm.h>
-#include <sys/sem.h>
-#include <sys/ipc.h>
-#include <signal.h>
-#include "gameMemory.h"
-#include "protocol.h"
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include "gameMemory.h"
+#include "protocol.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+
 // --- ZMIEŃ NA STRING NA INT ---
 int zmienNaInt(char *str) {
     int wynik = 0;
@@ -22,6 +22,10 @@ int zmienNaInt(char *str) {
     }
     return wynik;
 }
+
+
+// --- ZMIENNE GLOBALNE ---
+int bajty;
 
 // --- PROGRAM GŁÓWNY ---
 int main(int argc, char *argv[]) {
@@ -72,14 +76,14 @@ int main(int argc, char *argv[]) {
 
     struct pakietOdp odpowiedz;
     while(1) {
-        int bajty = read(fd_klient, &odpowiedz, sizeof(odpowiedz));
+        bajty = read(fd_klient, &odpowiedz, sizeof(odpowiedz));
         if (bajty > 0) {
             if (odpowiedz.typ == CMD_START) {
                 printf("[INICJALIZACJA] %s\n", odpowiedz.komunikat);
                 break;
             }
-        usleep(100000); // opóźnienie 0.1 sekundy
         }
+        usleep(100000); // opóźnienie 0.1 sekundy
     }
 
     // --- GŁÓWNA PĘTLA PROGRAMU ---
@@ -121,7 +125,7 @@ int main(int argc, char *argv[]) {
             // Wczytywanie komendy od użytkownika
             struct pakiet wysylany;
             char command[50];
-            int bajty = read(0, command, sizeof(command) - 1);
+            bajty = read(0, command, sizeof(command) - 1);
             if (bajty > 0) {
                 command[bajty - 1] = '\0'; // Usuń znak nowej linii
             } else {
@@ -130,7 +134,7 @@ int main(int argc, char *argv[]) {
             wysylany.idGracza = id_gracza;
 
             // Przetwarzanie komendy
-            if (strcmp(command, "help", 4) == 0) {
+            if (strncmp(command, "help", 4) == 0) {
                 printf("Dostępne komendy:\n");
                 printf("kup - kupuje określoną ilość jednostek danego typu\n");
                 printf("atak - atakuje drugiego gracza całą dostępną armią\n");
@@ -141,7 +145,7 @@ int main(int argc, char *argv[]) {
                 char coKupic[20];
                 char charIleKupic[20];
                 printf("Co chcesz kupić? (lpiechota, cpiechota, jazda, robotnik) \n");
-                int bajty = read(0, coKupic, sizeof(coKupic) - 1);
+                bajty = read(0, coKupic, sizeof(coKupic) - 1);
                 if (bajty > 0) {
                     coKupic[bajty - 1] = '\0';
                 } else {
@@ -149,7 +153,7 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
                 printf("Ile chcesz kupić? \n");
-                int bajty = read(0, charIleKupic, sizeof(charIleKupic) - 1);
+                bajty = read(0, charIleKupic, sizeof(charIleKupic) - 1);
                 if (bajty > 0) {
                     charIleKupic[bajty - 1] = '\0';
                 } else {
@@ -179,21 +183,21 @@ int main(int argc, char *argv[]) {
                 char charIleCP[20];
                 char charIleJazdy[20];
                 printf("Ile lekkiej piechoty wysłać do ataku? \n");
-                int bajty = read(0, charIleLP, sizeof(charIleLP) - 1);
+                bajty = read(0, charIleLP, sizeof(charIleLP) - 1);
                 if (bajty > 0) {
                     charIleLP[bajty - 1] = '\0';
                 } else {
                     strcpy(charIleLP, "0");
                 }
                 printf("Ile ciężkiej piechoty wysłać do ataku? \n");
-                int bajty = read(0, charIleCP, sizeof(charIleCP) - 1);
+                bajty = read(0, charIleCP, sizeof(charIleCP) - 1);
                 if (bajty > 0) {
                     charIleCP[bajty - 1] = '\0';
                 } else {
                     strcpy(charIleCP, "0");
                 }
                 printf("Ile jazdy wysłać do ataku? \n");
-                int bajty = read(0, charIleJazdy, sizeof(charIleJazdy) - 1);
+                bajty = read(0, charIleJazdy, sizeof(charIleJazdy) - 1);
                 if (bajty > 0) {
                     charIleJazdy[bajty - 1] = '\0';
                 } else {

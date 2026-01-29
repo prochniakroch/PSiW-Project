@@ -2,9 +2,9 @@
 #define PROTOCOL_H
 
 // Nazwa pliku kolejki na dysku
-#define FIFO_FILE "kolejka_serwera"
-#define CLIENT_0_FIFO_FILE "kolejka_klienta_0"
-#define CLIENT_1_FIFO_FILE "kolejka_klienta_1"
+#define FIFO_FILE "/tmp/kolejka_serwera"
+#define CLIENT_0_FIFO_FILE "/tmp/kolejka_klienta_0"
+#define CLIENT_1_FIFO_FILE "/tmp/kolejka_klienta_1"
 
 // --- TYPY KOMEND ---
 #define CMD_KUP 1
@@ -26,7 +26,7 @@
 #define AKTUALIZACJA 4
 
 // Struktura danych wysyłanych w pakiecie
-typedef struct {
+struct pakiet{
     int idGracza; // 0 lub 1
     int komenda;  // CMD_KUP lub CMD_ATAK lub CMD_LOGIN lub CMD_START lub CMD_WYJSCIE
     int typJednostki; // KUP_LEKKA_PIECHOTA, KUP_CIEZKA_PIECHOTA, KUP_JAZDA, KUP_ROBOTNIK
@@ -36,16 +36,16 @@ typedef struct {
     int ileLP; // ilość lekkiej piechoty do ataku
     int ileCP; // ilość ciężkiej piechoty do ataku
     int ileJazdy; // ilość jazdy do ataku
-} pakiet;
+};
 
-typedef struct {
-    int typ; // BLAD, SUKCES, INFO, AKTUALIZACJA
+struct pakietOdp{
+    int typ; // BLAD, SUKCES, INFO, AKTUALIZACJA, CMD_START
     char komunikat[256];
     int surowce;
     int lpiechota;
     int cpiechota;
     int jazda;
     int robotnicy;
-} pakietOdp;
+};
 
 #endif
