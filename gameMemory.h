@@ -38,9 +38,9 @@ typedef struct {
     int iloscWygranychAtakow;
     char komunikat[100];
     int czyNowyKomunikat;
-    int zmianaStanuZasobow;
+    int zmianaStanu;
     struct aktualneZadanie produkcja[MAX_PRODUKCJA];
-    struct wTrakcieAtaku;
+    struct wTrakcieAtaku wTrakcieAtaku;
 } ZasobyGracza;
 
 struct GameMemory {

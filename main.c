@@ -68,65 +68,69 @@ int sprawdzCzyMozeAtakowac(struct GameMemory *gra, int graczAtakujacy) {
 }
 
 void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
-    int graczObraniajacy;
     if (graczAtakujacy == 0) {
-        printf("Gracz 0 atakuje gracza 1!\n");
-        graczObraniajacy = 1;
+        printf("[ATAK] Gracz 0 atakuje gracza 1!\n");
+        int graczObraniajacy = 1;
     } else {
-        printf("Gracz 1 atakuje gracza 0!\n");
-        graczObraniajacy = 0;
+        printf("[ATAK] Gracz 1 atakuje gracza 0!\n");
+        int graczObraniajacy = 0;
     }
+    
+    // Sila Ataku i Sila Obrony obu graczy
+    int silaAtaku0 = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * 1 + gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * 1.5 + gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * 3.5;
+    int silaObrony0 = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * 1.2 + gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * 3 + gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * 1.2;
+    int silaAtaku1 = gra->gracze[graczObraniajacy].lpiechota * 1 + gra->gracze[graczObraniajacy].cpiechota * 1.5 + gra->gracze[graczObraniajacy].jazda * 3.5;
+    int silaObrony1 = gra->gracze[graczObraniajacy].lpiechota * 1.2 + gra->gracze[graczObraniajacy].cpiechota * 3 + gra->gracze[graczObraniajacy].jazda * 1.2;
+    printf("[ATAK] Siła ataku: %d vs Siła obrony: %d\n", silaAtaku0, silaObrony1);
 
-    int silaAtaku = gra->gracze[graczAtakujacy].lpiechota * 1 + gra->gracze[graczAtakujacy].cpiechota * 1.5 + gra->gracze[graczAtakujacy].jazda * 3.5;
-    int silaObrony = gra->gracze[graczObraniajacy].lpiechota * 1.2 + gra->gracze[graczObraniajacy].cpiechota * 3 + gra->gracze[graczObraniajacy].jazda * 1.2;
-    printf("Siła ataku: %d vs Siła obrony: %d\n", silaAtaku, silaObrony);
-
-    if (silaObrony == 0) {
+    if (silaObrony1 == 0) {
         printf("Obrońca nie ma jednostek do obrony! Wszystkie jednostki atakującego przechodzą bez strat.\n");
-        strcpy(gra->gracze[graczAtakujacy].komunikat, "[SERWER] Wszystkie twoje jednostki przeszły bez strat!\n");
+        strcpy(gra->gracze[graczAtakujacy].komunikat, "[SERWER] Wszystkie jednostki przeciwnika zostały zniszczone!\n");
+
         gra->gracze[graczAtakujacy].czyNowyKomunikat = 1;
         gra->gracze[graczAtakujacy].iloscWygranychAtakow += 1;
         return;
     }
 
-    if (silaAtaku - silaObrony > 0) {
+    if (silaAtaku0 - silaObrony1 > 0) {
+        // Sila Ataku - Sila Obrony > 0
         printf("Wszystkie jednostki obrońcy zostały zniszczone!\n");
+        int stratyAtakujacyLP = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * (silaAtaku0 / silaObrony1);
+        int stratyAtakujacyCP = gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * (silaAtaku0 / silaObrony1);
+        int stratyAtakujacyJazda = gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * (silaAtaku0 / silaObrony1);
+
+        gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota -= stratyAtakujacyLP;
+        gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota -= stratyAtakujacyCP;
+        gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda -= stratyAtakujacyJazda;
+
         gra->gracze[graczObraniajacy].lpiechota = 0;
         gra->gracze[graczObraniajacy].cpiechota = 0;
         gra->gracze[graczObraniajacy].jazda = 0;
         gra->gracze[graczAtakujacy].iloscWygranychAtakow += 1;
     } else {
-        //OBLICZANIE STRAT PODCZAS ATAKU
-        printf("Atak został odparty!\n");
-        printf("Straty broniącego:\n");
-        int lekkaPiechotaStraty = gra->gracze[graczObraniajacy].lpiechota * (silaAtaku / silaObrony);
-        int ciezkaPiechotaStraty = gra->gracze[graczObraniajacy].cpiechota * (silaAtaku / silaObrony);
-        int jazdaStraty = gra->gracze[graczObraniajacy].jazda * (silaAtaku / silaObrony);
-        printf("Lekka piechota: %d, Ciężka piechota: %d, Jazda: %d\n", lekkaPiechotaStraty, ciezkaPiechotaStraty, jazdaStraty);
-
-
-        int silaAtaku = gra->gracze[graczObraniajacy].lpiechota * 1 + gra->gracze[graczObraniajacy].cpiechota * 1.5 + gra->gracze[graczObraniajacy].jazda * 3.5;
-        int silaObrony = gra->gracze[graczAtakujacy].lpiechota * 1.2 + gra->gracze[graczAtakujacy].cpiechota * 3 + gra->gracze[graczAtakujacy].jazda * 1.2;
-
-        printf("Straty atakującego:\n");
-        int lekkaPiechotaStratyAtakujacy = gra->gracze[graczAtakujacy].lpiechota * (silaAtaku / silaObrony);
-        int ciezkaPiechotaStratyAtakujacy = gra->gracze[graczAtakujacy].cpiechota * (silaAtaku / silaObrony);
-        int jazdaStratyAtakujacy = gra->gracze[graczAtakujacy].jazda * (silaAtaku / silaObrony);
-        printf("Lekka piechota: %d, Ciężka piechota: %d, Jazda: %d\n", lekkaPiechotaStratyAtakujacy, ciezkaPiechotaStratyAtakujacy, jazdaStratyAtakujacy);
+        // Sila Ataku < Sila Obrony
+        // X * (silaAtaku / silaObrony)
+        int stratyObronyLP = gra->gracze[graczObraniajacy].lpiechota * (silaAtaku0 / silaObrony1);
+        int stratyObronyCP = gra->gracze[graczObraniajacy].cpiechota * (silaAtaku0 / silaObrony1);
+        int stratyObronyJazda = gra->gracze[graczObraniajacy].jazda * (silaAtaku0 / silaObrony1);
         
-        
-        gra->gracze[graczObraniajacy].lpiechota -= lekkaPiechotaStraty;
-        gra->gracze[graczObraniajacy].cpiechota -= ciezkaPiechotaStraty;
-        gra->gracze[graczObraniajacy].jazda -= jazdaStraty;
+        int stratyAtakujacyLP = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * (silaAtaku1 / silaObrony0);
+        int stratyAtakujacyCP = gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * (silaAtaku1 / silaObrony0);
+        int stratyAtakujacyJazda = gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * (silaAtaku1 / silaObrony0);
 
-        gra->gracze[graczAtakujacy].lpiechota -= lekkaPiechotaStratyAtakujacy;
-        gra->gracze[graczAtakujacy].cpiechota -= ciezkaPiechotaStratyAtakujacy;
-        gra->gracze[graczAtakujacy].jazda -= jazdaStratyAtakujacy;
+        gra->gracze[graczObraniajacy].lpiechota -= stratyObronyLP;
+        gra->gracze[graczObraniajacy].cpiechota -= stratyObronyCP;
+        gra->gracze[graczObraniajacy].jazda -= stratyObronyJazda;
+
+        gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota -= stratyAtakujacyLP;
+        gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota -= stratyAtakujacyCP;
+        gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda -= stratyAtakujacyJazda;
 
         ktoAtakuje = -1;
         czasAtaku = -1;
     }
 }
+
 
 void doAtaku(struct GameMemory *gra, int graczAtakujacy, int liczbaLP, int liczbaCP, int liczbaJazdy) {
     gra->gracze[graczAtakujacy].lpiechota -= liczbaLP;
@@ -302,6 +306,31 @@ int main() {
            gra->gracze[1].robotnicy);
 
     while(1) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            // Proces potomny - nasłuchiwanie komunikatów od klientow
+            while(1) {
+                struct pakiet komendy;
+                int bajty = read(fd_serwer, &komendy, sizeof(komendy));
+                if (bajty > 0) {
+                    switch (komendy.idGracza) {
+                        case 0:
+                            printf("[KLIENT0] - %s\n", komendy.komenda);
+                            break;
+                        case 1:
+                            printf("[KLIENT1] - %s\n", komendy.komenda);
+                            break;
+                    }
+                }
+                usleep(100000); // opóźnienie 0.1 sekundy
+            }
+            exit(0);
+
+        } else {
+            // Proces macierzysty - główna pętla serwera
+            usleep(10000); // opóźnienie 0.01 sekundy
+            sekunda++;
+        }
         // sprawdz czy gra jest aktywna
         if (gra->gra_aktywna == 0) {
             printf("Gra zakończona.\n");
@@ -313,10 +342,42 @@ int main() {
             opusc(sem_id, 0);
             gra->gracze[0].surowce += 50 + (gra->gracze[0].robotnicy * 5);
             gra->gracze[1].surowce += 50 + (gra->gracze[1].robotnicy * 5);
-            gra->gracze[0].zmianaStanuZasobow = 1;
-            gra->gracze[1].zmianaStanuZasobow = 1;
-            sekunda = 0;
+            gra->gracze[0].zmianaStanu = 1;
+            gra->gracze[1].zmianaStanu = 1;
             podnies(sem_id, 0);
+            sekunda = 0;
+        }
+
+        // wysyłanie aktualizacji do klientów
+        if(gra->gracze[0].zmianaStanu == 1) {
+            struct pakiet aktualizacja;
+            opusc(sem_id, 0);
+            struct graczInfo info0 = gra->gracze[0];
+            gra->gracze[0].zmianaStanu = 0;
+            podnies(sem_id, 0);
+            aktualizacja.komenda = CMD_AKTUALIZACJA;
+            aktualizacja.idGracza = 0;
+            aktualizacja.surowce = info0.surowce;
+            aktualizacja.lpiechota = info0.lpiechota;
+            aktualizacja.cpiechota = info0.cpiechota;
+            aktualizacja.jazda = info0.jazda;
+            aktualizacja.robotnicy = info0.robotnicy;
+            write(fd_klient0, &aktualizacja, sizeof(aktualizacja));
+        }    
+        if (gra->gracze[1].zmianaStanu == 1) {
+            struct pakiet aktualizacja;
+            opusc(sem_id, 0);
+            struct graczInfo info1 = gra->gracze[1];
+            gra->gracze[1].zmianaStanu = 0;
+            podnies(sem_id, 0);
+            aktualizacja.komenda = CMD_AKTUALIZACJA;
+            aktualizacja.idGracza = 1;
+            aktualizacja.surowce = info1.surowce;
+            aktualizacja.lpiechota = info1.lpiechota;
+            aktualizacja.cpiechota = info1.cpiechota;
+            aktualizacja.jazda = info1.jazda;
+            aktualizacja.robotnicy = info1.robotnicy;
+            write(fd_klient1, &aktualizacja, sizeof(aktualizacja));   
         }
 
         if (ktoAtakuje != -1) {

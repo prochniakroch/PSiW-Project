@@ -28,8 +28,8 @@
 // Struktura danych wysyłanych w pakiecie
 typedef struct {
     int idGracza; // 0 lub 1
-    int komenda;  // 1=KUP, 2=ATAK
-    int typJednostki; // 1=lekka piechota, 2=ciężka piechota, 3=jazda, 4=robotnik
+    int komenda;  // CMD_KUP lub CMD_ATAK lub CMD_LOGIN lub CMD_START lub CMD_WYJSCIE
+    int typJednostki; // KUP_LEKKA_PIECHOTA, KUP_CIEZKA_PIECHOTA, KUP_JAZDA, KUP_ROBOTNIK
     int ilosc; // ilość jednostek do kupienia
 
     // Dane do ataku
@@ -39,8 +39,13 @@ typedef struct {
 } pakiet;
 
 typedef struct {
-    int typ; // 1 = INFO, 2 = BŁĄD, 3 = SUKCES, 4 = AKTUALIZACJA
+    int typ; // BLAD, SUKCES, INFO, AKTUALIZACJA
     char komunikat[256];
+    int surowce;
+    int lpiechota;
+    int cpiechota;
+    int jazda;
+    int robotnicy;
 } pakietOdp;
 
 #endif

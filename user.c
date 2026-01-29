@@ -8,6 +8,20 @@
 #include "protocol.h"
 #include <string.h>
 #include <unistd.h>
+// --- ZMIEŃ NA STRING NA INT ---
+int zmienNaInt(char *str) {
+    int wynik = 0;
+    for (int i = 0; str[i] == ' '; i++) {
+        // pomiń spacje na początku
+    }
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (str[i] < '0' || str[i] > '9') {
+            return -1; // nieprawidłowy znak
+        }
+        wynik = wynik * 10 + (str[i] - '0');
+    }
+    return wynik;
+}
 
 // --- PROGRAM GŁÓWNY ---
 int main(int argc, char *argv[]) {
@@ -76,9 +90,30 @@ int main(int argc, char *argv[]) {
             struct pakietOdp odpowiedz;
             int bajtyOdp = read(fd_klient, &odpowiedz, sizeof(odpowiedz));
             if (bajtyOdp > 0) {
-                printf("[SERWER] -  %s\n", odpowiedz.komunikat);
+                switch (odpowiedz.typ) {
+                    case INFO:
+                        printf("[INFO] %s\n", odpowiedz.komunikat);
+                        break;
+                    case BLAD:
+                        printf("[BŁĄD] %s\n", odpowiedz.komunikat);
+                        break;
+                    case SUKCES:
+                        printf("[SUKCES] %s\n", odpowiedz.komunikat);
+                        break;
+                    case AKTUALIZACJA:
+                        printf("[AKTUALIZACJA] Surowce: %d, Lekkiej piechoty: %d, Ciężkiej piechoty: %d, Jazdy: %d, Robotników: %d\n",
+                               odpowiedz.surowce,
+                               odpowiedz.lpiechota,
+                               odpowiedz.cpiechota,
+                               odpowiedz.jazda,
+                               odpowiedz.robotnicy);
+                        break;
+                    default:
+                        printf("[BŁĄD] Nieznany typ odpowiedzi od serwera: %d\n", odpowiedz.typ);
+                        break;
+                }
             }
-            usleep(50000); // opóźnienie 0.1 sekundy
+            usleep(100000); // opóźnienie 0.1 sekundy
         }
     } else {
         // Proces macierzysty - wysyłanie komend do serwera
@@ -104,7 +139,7 @@ int main(int argc, char *argv[]) {
                 continue;
             } else if (strncmp(command, "kup", 3) == 0) {
                 char coKupic[20];
-                int ileKupic;
+                char charIleKupic[20];
                 printf("Co chcesz kupić? (lpiechota, cpiechota, jazda, robotnik) \n");
                 int bajty = read(0, coKupic, sizeof(coKupic) - 1);
                 if (bajty > 0) {
@@ -114,9 +149,9 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
                 printf("Ile chcesz kupić? \n");
-                int bajty = read(0, ileKupic, sizeof(ileKupic) - 1);
+                int bajty = read(0, charIleKupic, sizeof(charIleKupic) - 1);
                 if (bajty > 0) {
-                    ileKupic[bajty - 1] = '\0';
+                    charIleKupic[bajty - 1] = '\0';
                 } else {
                     printf("Nieprawidłowa komenda. Podaj ilość jednostek do kupienia np. 3\n");
                     continue;
@@ -132,7 +167,7 @@ int main(int argc, char *argv[]) {
                 } else if (strcmp(coKupic, "robotnik") == 0) {
                     wysylany.typJednostki = KUP_ROBOTNIK;
                 }
-                wysylany.ilosc = ileKupic;
+                wysylany.ilosc = zmienNaInt(charIleKupic);
 
                 int czyWyslano = write(fd_serwer, &wysylany, sizeof(wysylany));
                 if (czyWyslano == -1) {
@@ -140,34 +175,34 @@ int main(int argc, char *argv[]) {
                 }
 
             } else if (strncmp(command, "atak", 4) == 0) {
-                int ileLP;
-                int ileCP;
-                int ileJazdy;
+                char charIleLP[20];
+                char charIleCP[20];
+                char charIleJazdy[20];
                 printf("Ile lekkiej piechoty wysłać do ataku? \n");
-                int bajty = read(0, ileLP, sizeof(ileLP) - 1);
+                int bajty = read(0, charIleLP, sizeof(charIleLP) - 1);
                 if (bajty > 0) {
-                    ileLP[bajty - 1] = '\0';
+                    charIleLP[bajty - 1] = '\0';
                 } else {
-                    ileCP = 0;
+                    strcpy(charIleLP, "0");
                 }
                 printf("Ile ciężkiej piechoty wysłać do ataku? \n");
-                int bajty = read(0, ileCP, sizeof(ileCP) - 1);
+                int bajty = read(0, charIleCP, sizeof(charIleCP) - 1);
                 if (bajty > 0) {
-                    ileCP[bajty - 1] = '\0';
+                    charIleCP[bajty - 1] = '\0';
                 } else {
-                    ileCP = 0;
+                    strcpy(charIleCP, "0");
                 }
                 printf("Ile jazdy wysłać do ataku? \n");
-                int bajty = read(0, ileJazdy, sizeof(ileJazdy) - 1);
+                int bajty = read(0, charIleJazdy, sizeof(charIleJazdy) - 1);
                 if (bajty > 0) {
-                    ileJazdy[bajty - 1] = '\0';
+                    charIleJazdy[bajty - 1] = '\0';
                 } else {
-                    ileJazdy = 0;
+                    strcpy(charIleJazdy, "0");
                 }
                 wysylany.komenda = CMD_ATAK;
-                wysylany.ileLP = ileLP;
-                wysylany.ileCP = ileCP;
-                wysylany.ileJazdy = ileJazdy;
+                wysylany.ileLP = zmienNaInt(charIleLP);
+                wysylany.ileCP = zmienNaInt(charIleCP);
+                wysylany.ileJazdy = zmienNaInt(charIleJazdy);
 
                 int czyWyslano = write(fd_serwer, &wysylany, sizeof(wysylany));
                 if (czyWyslano == -1) {
