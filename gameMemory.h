@@ -43,8 +43,6 @@ typedef struct {
     int komenda;
     int komendaTyp;
     int komendaIlosc;
-    int czyAtakuje;
-    int czasAtaku;
     int iloscWygranychAtakow;
     char komunikat[256];
     int jakiKomunikat;
