@@ -25,10 +25,11 @@
 #define SUKCES 3
 #define AKTUALIZACJA 4
 
-// Struktura danych wysyłanych w pakiecie
+// --- STRUKTURA KOLEJEK KOMUNIKATÓW ---
+// --- DO SERWERA ---
 struct pakiet{
     int idGracza; // 0 lub 1
-    int komenda;  // CMD_KUP lub CMD_ATAK lub CMD_LOGIN lub CMD_START lub CMD_WYJSCIE
+    int komenda;  // CMD_KUP, CMD_ATAK, CMD_LOGIN, CMD_START, CMD_WYJSCIE
     int typJednostki; // KUP_LEKKA_PIECHOTA, KUP_CIEZKA_PIECHOTA, KUP_JAZDA, KUP_ROBOTNIK
     int ilosc; // ilość jednostek do kupienia
 
@@ -38,14 +39,15 @@ struct pakiet{
     int ileJazdy; // ilość jazdy do ataku
 };
 
+// --- DO KLIENTA ---
 struct pakietOdp{
     int typ; // BLAD, SUKCES, INFO, AKTUALIZACJA, CMD_START
-    char komunikat[256];
-    int surowce;
-    int lpiechota;
-    int cpiechota;
-    int jazda;
-    int robotnicy;
+    char komunikat[256]; // komunikat
+    int surowce; // ilosc surowcy gracza
+    int lpiechota; // ilosc lekkiej piechoty gracza
+    int cpiechota; // ilosc ciezkiej piechoty gracza
+    int jazda; // ilosc jazdy gracza 
+    int robotnicy; // ilosc robotnikow gracza
 };
 
 #endif

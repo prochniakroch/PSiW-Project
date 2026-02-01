@@ -76,7 +76,7 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
         graczObraniajacy = 0;
     }
     
-    // Sila Ataku i Sila Obrony obu graczy
+    // Sila ataku i sila obrony obu graczy
     int silaAtaku0 = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * 1 + gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * 1.5 + gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * 3.5;
     int silaObrony0 = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * 1.2 + gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * 3 + gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * 1.2;
     int silaAtaku1 = gra->gracze[graczObraniajacy].lpiechota * 1 + gra->gracze[graczObraniajacy].cpiechota * 1.5 + gra->gracze[graczObraniajacy].jazda * 3.5;
@@ -84,17 +84,20 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
     printf("[ATAK] Siła ataku: %d vs Siła obrony: %d\n", silaAtaku0, silaObrony1);
 
     if (silaObrony1 == 0) {
-        printf("Obrońca nie ma jednostek do obrony! Wszystkie jednostki atakującego przechodzą bez strat.\n");
-        strcpy(gra->gracze[graczAtakujacy].komunikat, "Wszystkie jednostki przeciwnika zostały zniszczone!\n");
-        gra->gracze[graczAtakujacy].jakiKomunikat = SUKCES;
+        printf("[ATAK] Obrońca nie ma jednostek do obrony! Wszystkie jednostki atakującego przechodzą bez strat.\n");
+        strcpy(gra->gracze[graczAtakujacy].komunikat, "Wygrałeś atak bez strat. Przeciwnik nie miał obrony.\n");
+        strcpy(gra->gracze[graczObraniajacy].komunikat, "Nie miałeś jednostek do obrony. Przeciwnik wygrał atak.\n");
+        gra->gracze[graczAtakujacy].jakiKomunikat = INFO;
         gra->gracze[graczAtakujacy].czyNowyKomunikat = 1;
+        gra->gracze[graczObraniajacy].jakiKomunikat = INFO;
+        gra->gracze[graczObraniajacy].czyNowyKomunikat = 1;
         gra->gracze[graczAtakujacy].iloscWygranychAtakow += 1;
         return;
     }
 
     if (silaAtaku0 - silaObrony1 > 0) {
         // Sila Ataku - Sila Obrony > 0
-        printf("Wszystkie jednostki obrońcy zostały zniszczone!\n");
+        printf("[ATAK] Wszystkie jednostki obrońcy zostały zniszczone!\n");
         int stratyAtakujacyLP = gra->gracze[graczAtakujacy].wTrakcieAtaku.lpiechota * (silaAtaku0 / silaObrony1);
         int stratyAtakujacyCP = gra->gracze[graczAtakujacy].wTrakcieAtaku.cpiechota * (silaAtaku0 / silaObrony1);
         int stratyAtakujacyJazda = gra->gracze[graczAtakujacy].wTrakcieAtaku.jazda * (silaAtaku0 / silaObrony1);
@@ -106,10 +109,19 @@ void symulacjaAtaku(struct GameMemory *gra, int graczAtakujacy) {
         gra->gracze[graczObraniajacy].lpiechota = 0;
         gra->gracze[graczObraniajacy].cpiechota = 0;
         gra->gracze[graczObraniajacy].jazda = 0;
+
+        strcpy(gra->gracze[graczAtakujacy].komunikat, "Wygrałeś atak! Wszystkie jednostki przeciwnika zostały zniszczone.\n");
+        strcpy(gra->gracze[graczObraniajacy].komunikat, "Przeciwnik zniszczył wszystkie twoje jednostki. Nie odparłeś ataku.\n");
+        gra->gracze[graczAtakujacy].jakiKomunikat = INFO;
+        gra->gracze[graczAtakujacy].czyNowyKomunikat = 1;
+        gra->gracze[graczObraniajacy].jakiKomunikat = INFO;
+        gra->gracze[graczObraniajacy].czyNowyKomunikat = 1;
+
         gra->gracze[graczAtakujacy].iloscWygranychAtakow += 1;
     } else {
         // Sila Ataku < Sila Obrony
         // X * (silaAtaku / silaObrony)
+        printf("[ATAK] Atak został odparty.\n");
         int stratyObronyLP = gra->gracze[graczObraniajacy].lpiechota * (silaAtaku0 / silaObrony1);
         int stratyObronyCP = gra->gracze[graczObraniajacy].cpiechota * (silaAtaku0 / silaObrony1);
         int stratyObronyJazda = gra->gracze[graczObraniajacy].jazda * (silaAtaku0 / silaObrony1);
@@ -367,7 +379,7 @@ int main() {
                         gra->gracze[idGracza].wTrakcieAtaku.lpiechota = komendy.ileLP;
                         gra->gracze[idGracza].wTrakcieAtaku.cpiechota = komendy.ileCP;
                         gra->gracze[idGracza].wTrakcieAtaku.jazda = komendy.ileJazdy;
-                        gra->gracze[idGracza].czyAtakuje = 1;
+                        ktoAtakuje[idGracza] = 1;
                     }
                     podnies(sem_id, 0);
                 }
@@ -542,15 +554,15 @@ int main() {
                             }
                         break;
                     case CMD_ATAK:
-                        if (gra->gracze[i].czyAtakuje == 1) {
+                        if (ktoAtakuje[i] == 1) {
                             strcpy(gra->gracze[i].komunikat, "Już przygotowujesz atak.\n");
                             gra->gracze[i].jakiKomunikat = BLAD;
                             gra->gracze[i].czyNowyKomunikat = 1;
                             printf("Gracz %d już przygotowuje atak!\n", i);
                         } else {
                             if (czyMozeAtakowac(gra, i)) {
-                                gra->gracze[i].czyAtakuje = 1;
-                                czasAtaku = 500; // czas do rozpoczęcia ataku (5 sekund)
+                                ktoAtakuje[i] = 1;
+                                czasAtaku[i] = 500; // czas do rozpoczęcia ataku (5 sekund)
                                 strcpy(gra->gracze[i].komunikat, "Atak się rozpoczyna, potrwa 5 sekund.\n");
                                 gra->gracze[i].jakiKomunikat = INFO;
                                 gra->gracze[i].czyNowyKomunikat = 1;
